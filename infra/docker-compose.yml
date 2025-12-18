@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: chgk
+      POSTGRES_USER: chgk
+      POSTGRES_PASSWORD: chgk
+    ports:
+      - "5432:5432"
+    volumes:
+      - chgk_pgdata:/var/lib/postgresql/data
+
+volumes:
+  chgk_pgdata:
