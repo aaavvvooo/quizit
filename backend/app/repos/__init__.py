@@ -1,1 +1,2 @@
-from .user_repo import *
+from .auth_repo import *
+from .event_repo import *

@@ -4,13 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.security.jwt import create_access_token
 from app.security.passwords import hash_password, verify_password, needs_rehash
-from app.repos import UserRepository
-
-#TODO remove the exceptions from here and maybe add something there
-
-class AuthError(Exception): ...
-class EmailAlreadyRegistered(AuthError): ...
-class InvalidCredentials(AuthError): ...
+from app.repos import AuthRepository
+from app.services.exceptions import EmailAlreadyRegistered, InvalidCredentials
 
 
 @dataclass(slots=True)
@@ -18,8 +13,8 @@ class AuthService:
     session: AsyncSession
 
     @property
-    def users(self) -> UserRepository:
-        return UserRepository(self.session)
+    def users(self) -> AuthRepository:
+        return AuthRepository(self.session)
 
     async def register(self, name: str,  email: str, password: str):
         existing = await self.users.get_user_by_email(email)
@@ -41,4 +36,3 @@ class AuthService:
             await self.session.commit()
 
         return create_access_token(sub=str(user.id))
-

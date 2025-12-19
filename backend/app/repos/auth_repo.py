@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import User
 
-class UserRepository:
+class AuthRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
@@ -26,5 +26,5 @@ class UserRepository:
     async def create(self, name: str, email: str, hashed_password: str) -> User:
         user = User(name=name, email=email.lower(), hashed_password=hashed_password, is_active=True)
         self.session.add(user)
-        await self.session.flush()  # gets PK without committing
+        await self.session.flush()
         return user
