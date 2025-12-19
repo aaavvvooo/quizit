@@ -8,3 +8,10 @@ class EmailAlreadyRegistered(AuthError):
 
 class InvalidCredentials(AuthError):
     pass
+
+class EventError(Exception):
+    pass
+
+
+class EventNotFound(EventError):
+    pass

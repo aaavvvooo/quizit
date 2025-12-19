@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from decimal import Decimal
 from pydantic import BaseModel, Field
+from typing import Optional
+
 
 
 class EventCreate(BaseModel):
@@ -13,11 +15,11 @@ class EventCreate(BaseModel):
     image_url: str
 
 class EventUpdate(BaseModel):
-    name: str | None = None
-    starts_at: datetime | None = None
-    venue: str | None = None
-    price: Decimal | None = None
-    image_url: str | None = None
+    name: Optional[str] = None
+    starts_at: Optional[datetime] = None
+    venue: Optional[str] = None
+    price: Optional[Decimal] = None
+    image_url: Optional[str] = None
 
 class EventList(BaseModel):
     id: int

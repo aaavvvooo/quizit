@@ -5,6 +5,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from app.models import Event
+from app.schemas import EventUpdate
 class EventRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -29,3 +30,26 @@ class EventRepository:
         self.session.add(event)
         await self.session.flush()
         return event
+
+    async def list_events(self) -> list[Event]:
+        res = await self.session.execute(select(Event))
+        return res.scalars().all()
+
+    async def get_event(self, event_id: int) -> Event:
+        res = await self.session.get(Event, event_id)
+        return res
+
+    async def update_event(self, event: Event, payload: EventUpdate) -> Event:
+        update_data = payload.dict(exclude_unset=True, exclude_none=True)
+        if "starts_at" in update_data:
+            update_data["starting_time"] = update_data.pop("starts_at")
+
+        for key, value in update_data.items():
+            setattr(event, key, value)
+
+        await self.session.flush()
+        return event
+
+    async def delete_event(self, event: Event) -> None:
+        await self.session.delete(event)
+        await self.session.flush()
