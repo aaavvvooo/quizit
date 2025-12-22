@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db import get_db
 from app.services.event_service import EventService
 from app.schemas import EventCreate, EventUpdate, EventList
-from app.services.exceptions import EventNotFound
+from app.services.exceptions import EventNotFound, EventInvalidStatus
 from app.utils import get_current_user
 
 router = APIRouter(prefix="/events", tags=["events"])
@@ -40,11 +40,11 @@ async def get_events(
 
 @router.get("/{event_id}", response_model=EventList)
 async def get_event(
-    sessiom: AsyncSession = Depends(get_db),
+    event_id: int,
+    session: AsyncSession = Depends(get_db),
     cur_user_id: int = Depends(get_current_user),
-    event_id: int = None
 ):
-    service = EventService(sessiom)
+    service = EventService(session)
     try:
         event = await service.get_event(event_id)
         return event
@@ -56,12 +56,12 @@ async def get_event(
 
 @router.patch("/{event_id}", response_model=EventList)
 async def update_event(
+    event_id: int,
     payload: EventUpdate,
-    sessiom: AsyncSession = Depends(get_db),
+    session: AsyncSession = Depends(get_db),
     cur_user_id: int = Depends(get_current_user),
-    event_id: int = None
 ):
-    service = EventService(sessiom)
+    service = EventService(session)
     try:
         event = await service.update_event(event_id, payload)
         return event
@@ -74,9 +74,9 @@ async def update_event(
 
 @router.delete("/{event_id}")
 async def delete_event(
+    event_id: int,
     session: AsyncSession = Depends(get_db),
     cur_user_id: int = Depends(get_current_user),
-    event_id: int = None
 ):
     service = EventService(session)
     try:
@@ -89,3 +89,75 @@ async def delete_event(
         raise HTTPException(status_code=500, detail="Something went wrong during event deletion.")
 
 
+@router.post("/{event_id}/publish")
+async def publish_event(
+    event_id: int,
+    session: AsyncSession = Depends(get_db),
+    cur_user_id: int = Depends(get_current_user),
+):
+    service = EventService(session)
+    try:
+        await service.publish_event(event_id)
+        return {"status": f"Event #{event_id} published successfully."}
+    except EventNotFound:
+        raise HTTPException(status_code=404, detail="Event not found.")
+    except EventInvalidStatus as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail="Something went wrong during event publishing.")
+
+
+@router.post("/{event_id}/unpublish")
+async def unpublish_event(
+    event_id: int,
+    session: AsyncSession = Depends(get_db),
+    cur_user_id: int = Depends(get_current_user),
+):
+    service = EventService(session)
+    try:
+        await service.unpublish_event(event_id)
+        return {"status": f"Event #{event_id} unpublished successfully."}
+    except EventNotFound:
+        raise HTTPException(status_code=404, detail="Event not found.")
+    except EventInvalidStatus as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail="Something went wrong during event unpublishing.")
+
+@router.post("/{event_id}/start")
+async def start_event(
+    event_id: int,
+    session: AsyncSession = Depends(get_db),
+    cur_user_id: int = Depends(get_current_user),
+):
+    service = EventService(session)
+    try:
+        await service.start_event(event_id)
+        return {"status": f"Event #{event_id} started successfully."}
+    except EventNotFound:
+        raise HTTPException(status_code=404, detail="Event not found.")
+    except EventInvalidStatus as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail="Something went wrong during event start.")
+
+@router.post("/{event_id}/finish")
+async def finish_event(
+    event_id: int,
+    session: AsyncSession = Depends(get_db),
+    cur_user_id: int = Depends(get_current_user),
+):
+    service = EventService(session)
+    try:
+        await service.finish_event(event_id)
+        return {"status": f"Event #{event_id} finished successfully."}
+    except EventNotFound:
+        raise HTTPException(status_code=404, detail="Event not found.")
+    except EventInvalidStatus as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail="Something went wrong during event finish.")

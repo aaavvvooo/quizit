@@ -1,7 +1,7 @@
 """add events
 
 Revision ID: aa6d6c221f00
-Revises: d6aac16da39d
+Revises: dd43fe0b8849
 Create Date: 2025-12-19 18:05:07.576519
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = 'aa6d6c221f00'
-down_revision: Union[str, Sequence[str], None] = 'd6aac16da39d'
+down_revision: Union[str, Sequence[str], None] = 'dd43fe0b8849'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

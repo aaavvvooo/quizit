@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Optional
 from decimal import Decimal
 from datetime import datetime
 from sqlalchemy import DateTime, Enum as SAEnum, ForeignKey, Numeric, String, func
@@ -35,6 +36,10 @@ class Event(Base):
         nullable=False,
     )
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    
+    published_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

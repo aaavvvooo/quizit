@@ -15,3 +15,7 @@ class EventError(Exception):
 
 class EventNotFound(EventError):
     pass
+
+
+class EventInvalidStatus(EventError):
+    pass

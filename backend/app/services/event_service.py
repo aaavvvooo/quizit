@@ -1,10 +1,12 @@
 from __future__ import annotations
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repos import EventRepository
 from app.schemas import EventList, EventCreate, EventUpdate
-from app.services.exceptions import EventNotFound
+from app.models import EventStatus
+from app.services.exceptions import EventNotFound, EventInvalidStatus
 
 @dataclass(slots=True)
 class EventService:
@@ -49,4 +51,53 @@ class EventService:
         await self.events.delete_event(event)
         await self.session.commit()
 
+    async def transition_event_status(self, event_id: int, target: EventStatus) -> None:
+        event = await self.events.get_event(event_id)
+        if not event:
+            raise EventNotFound()
+
+        now = datetime.now(timezone.utc)
+        transitions = {
+            EventStatus.UPCOMING: {
+                "allowed": {EventStatus.DRAFT},
+                "apply": lambda: self.events.publish_event(event, now),
+                "error": "Event must be in draft to publish.",
+            },
+            EventStatus.DRAFT: {
+                "allowed": {EventStatus.UPCOMING},
+                "apply": lambda: self.events.unpublish_event(event),
+                "error": "Event must be upcoming to unpublish.",
+            },
+            EventStatus.ACTIVE: {
+                "allowed": {EventStatus.UPCOMING},
+                "apply": lambda: self.events.start_event(event, now),
+                "error": "Event must be upcoming to start.",
+            },
+            EventStatus.FINISHED: {
+                "allowed": {EventStatus.ACTIVE},
+                "apply": lambda: self.events.finish_event(event, now),
+                "error": "Event must be active to finish.",
+            },
+        }
+
+        transition = transitions.get(target)
+        if not transition:
+            raise EventInvalidStatus("Unsupported status transition.")
+        if event.status not in transition["allowed"]:
+            raise EventInvalidStatus(transition["error"])
+
+        await transition["apply"]()
+        await self.session.commit()
+
+    async def publish_event(self, event_id: int) -> None:
+        await self.transition_event_status(event_id, EventStatus.UPCOMING)
+
+    async def unpublish_event(self, event_id: int) -> None:
+        await self.transition_event_status(event_id, EventStatus.DRAFT)
+
+    async def start_event(self, event_id: int) -> None:
+        await self.transition_event_status(event_id, EventStatus.ACTIVE)
+
+    async def finish_event(self, event_id: int) -> None:
+        await self.transition_event_status(event_id, EventStatus.FINISHED)
         

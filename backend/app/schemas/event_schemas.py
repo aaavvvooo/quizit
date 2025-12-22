@@ -10,7 +10,7 @@ from typing import Optional
 class EventCreate(BaseModel):
     name: str
     starts_at: datetime
-    venue: str
+    venue: str  
     price: Decimal
     image_url: str
 
