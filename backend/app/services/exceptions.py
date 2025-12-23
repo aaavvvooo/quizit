@@ -23,3 +23,15 @@ class EventNotFound(EventError):
 
 class EventInvalidStatus(EventError):
     pass
+
+
+class RegistrationError(Exception):
+    pass
+
+
+class RegistrationAlreadyExists(RegistrationError):
+    pass
+
+
+class RegistrationNotAllowed(RegistrationError):
+    pass

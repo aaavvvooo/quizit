@@ -3,10 +3,21 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.repos import EventRepository, RoleRepository
-from app.schemas import EventList, EventCreate, EventUpdate
-from app.models import EventStatus, Role
-from app.services.exceptions import EventNotFound, EventInvalidStatus
+from app.repos import EventRepository, RegistrationRepository, RoleRepository
+from app.schemas import (
+    EventList,
+    EventCreate,
+    EventUpdate,
+    EventRegistrationCreate,
+    EventRegistrationList,
+)
+from app.models import EventStatus, RegistrationType, Role
+from app.services.exceptions import (
+    EventNotFound,
+    EventInvalidStatus,
+    RegistrationAlreadyExists,
+    RegistrationNotAllowed,
+)
 
 @dataclass(slots=True)
 class EventService:
@@ -19,6 +30,10 @@ class EventService:
     @property
     def roles(self) -> RoleRepository:
         return RoleRepository(self.session)
+
+    @property
+    def registrations(self) -> RegistrationRepository:
+        return RegistrationRepository(self.session)
 
 
     async def create_event(self, event: EventCreate, cur_user_id: int) -> EventList:
@@ -33,6 +48,41 @@ class EventService:
         event_list = await self.events.list_events(include_drafts=include_drafts)
         res = [EventList(**event.__dict__) for event in event_list]
         return res
+
+    async def register_for_event(
+        self,
+        event_id: int,
+        user_id: int,
+        payload: EventRegistrationCreate,
+    ) -> EventRegistrationList:
+        event = await self.events.get_event(event_id)
+        if not event:
+            raise EventNotFound()
+        if event.status == EventStatus.DRAFT:
+            raise RegistrationNotAllowed()
+
+        if await self.registrations.has_registration(event_id, user_id):
+            raise RegistrationAlreadyExists()
+
+        registration = await self.registrations.create_registration(
+            event_id=event_id,
+            user_id=user_id,
+            reg_type=RegistrationType(payload.type),
+            team_name=payload.team_name,
+            email=str(payload.email),
+            phone=payload.phone,
+        )
+        await self.session.commit()
+        await self.session.refresh(registration)
+        return EventRegistrationList(**registration.__dict__)
+
+    async def list_registrations(self, event_id: int) -> list[EventRegistrationList]:
+        event = await self.events.get_event(event_id)
+        if not event:
+            raise EventNotFound()
+
+        registrations = await self.registrations.list_for_event(event_id)
+        return [EventRegistrationList(**reg.__dict__) for reg in registrations]
 
     async def get_event(self, event_id: int) -> EventList:
         event = await self.events.get_event(event_id)

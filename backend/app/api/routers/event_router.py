@@ -5,8 +5,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
 from app.services.event_service import EventService
-from app.schemas import EventCreate, EventUpdate, EventList
-from app.services.exceptions import EventNotFound, EventInvalidStatus
+from app.schemas import (
+    EventCreate,
+    EventUpdate,
+    EventList,
+    EventRegistrationCreate,
+    EventRegistrationList,
+)
+from app.services.exceptions import (
+    EventNotFound,
+    EventInvalidStatus,
+    RegistrationAlreadyExists,
+    RegistrationNotAllowed,
+)
 from app.utils import get_current_user, get_role, require_role
 from app.models import Role
 
@@ -38,6 +49,43 @@ async def get_events(
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail="Something went wrong during events listing.")
+
+@router.post("/{event_id}/register", response_model=EventRegistrationList, status_code=201)
+async def register_event(
+    event_id: int,
+    payload: EventRegistrationCreate,
+    session: AsyncSession = Depends(get_db),
+    cur_user_id: int = Depends(get_current_user),
+):
+    service = EventService(session)
+    try:
+        registration = await service.register_for_event(event_id, cur_user_id, payload)
+        return registration
+    except EventNotFound:
+        raise HTTPException(status_code=404, detail="Event not found.")
+    except RegistrationAlreadyExists:
+        raise HTTPException(status_code=400, detail="Already registered for this event.")
+    except RegistrationNotAllowed:
+        raise HTTPException(status_code=400, detail="Registration is not allowed for this event.")
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail="Something went wrong during event registration.")
+
+@router.get("/{event_id}/registrations", response_model=list[EventRegistrationList])
+async def list_registrations(
+    event_id: int,
+    session: AsyncSession = Depends(get_db),
+    cur_user_id: int = Depends(require_role("ADMIN")),
+):
+    service = EventService(session)
+    try:
+        registrations = await service.list_registrations(event_id)
+        return registrations
+    except EventNotFound:
+        raise HTTPException(status_code=404, detail="Event not found.")
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail="Something went wrong during registrations listing.")
 
 @router.get("/{event_id}", response_model=EventList)
 async def get_event(

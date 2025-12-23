@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from typing import Optional
 
+from app.models import RegistrationType
 
 
 class EventCreate(BaseModel):
@@ -30,5 +31,25 @@ class EventList(BaseModel):
     image_url: str
     status: str
     created_by: int
+
+    model_config = {"from_attributes": True}
+
+
+class EventRegistrationCreate(BaseModel):
+    type: RegistrationType
+    email: EmailStr
+    phone: str = Field(min_length=5, max_length=32)
+    team_name: Optional[str] = None
+
+
+class EventRegistrationList(BaseModel):
+    id: int
+    event_id: int
+    registered_by_user_id: int
+    type: RegistrationType
+    team_name: Optional[str]
+    email: EmailStr = Field(validation_alias="contact_email")
+    phone: str = Field(validation_alias="contact_phone")
+    created_at: datetime
 
     model_config = {"from_attributes": True}
