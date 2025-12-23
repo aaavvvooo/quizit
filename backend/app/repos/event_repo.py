@@ -32,8 +32,11 @@ class EventRepository:
         await self.session.flush()
         return event
 
-    async def list_events(self) -> list[Event]:
-        res = await self.session.execute(select(Event))
+    async def list_events(self, include_drafts: bool = True) -> list[Event]:
+        stmt = select(Event)
+        if not include_drafts:
+            stmt = stmt.where(Event.status != EventStatus.DRAFT)
+        res = await self.session.execute(stmt)
         return res.scalars().all()
 
     async def get_event(self, event_id: int) -> Event:

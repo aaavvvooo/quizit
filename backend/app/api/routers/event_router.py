@@ -7,7 +7,8 @@ from app.db import get_db
 from app.services.event_service import EventService
 from app.schemas import EventCreate, EventUpdate, EventList
 from app.services.exceptions import EventNotFound, EventInvalidStatus
-from app.utils import get_current_user
+from app.utils import get_current_user, get_role, require_role
+from app.models import Role
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -15,7 +16,7 @@ router = APIRouter(prefix="/events", tags=["events"])
 async def create_event(
     payload: EventCreate, 
     session: AsyncSession = Depends(get_db),
-    cur_user_id: int = Depends(get_current_user)    
+    cur_user_id: int = Depends(require_role("ADMIN"))    
 ):
     service = EventService(session)
     try:
@@ -28,11 +29,11 @@ async def create_event(
 @router.get("", response_model=list[EventList])
 async def get_events(
     session: AsyncSession = Depends(get_db),
-    cur_user_id: int = Depends(get_current_user)
+    role: Role | None = Depends(get_role),
 ):
     service = EventService(session)
     try:
-        events = await service.list_events()
+        events = await service.list_events(role)
         return events
     except Exception as e:
         print(e)
@@ -59,7 +60,7 @@ async def update_event(
     event_id: int,
     payload: EventUpdate,
     session: AsyncSession = Depends(get_db),
-    cur_user_id: int = Depends(get_current_user),
+    cur_user_id: int = Depends(require_role("ADMIN")),
 ):
     service = EventService(session)
     try:
@@ -76,7 +77,7 @@ async def update_event(
 async def delete_event(
     event_id: int,
     session: AsyncSession = Depends(get_db),
-    cur_user_id: int = Depends(get_current_user),
+    cur_user_id: int = Depends(require_role("ADMIN")),
 ):
     service = EventService(session)
     try:
@@ -93,7 +94,7 @@ async def delete_event(
 async def publish_event(
     event_id: int,
     session: AsyncSession = Depends(get_db),
-    cur_user_id: int = Depends(get_current_user),
+    cur_user_id: int = Depends(require_role("ADMIN")),
 ):
     service = EventService(session)
     try:
@@ -112,7 +113,7 @@ async def publish_event(
 async def unpublish_event(
     event_id: int,
     session: AsyncSession = Depends(get_db),
-    cur_user_id: int = Depends(get_current_user),
+    cur_user_id: int = Depends(require_role("ADMIN")),
 ):
     service = EventService(session)
     try:
@@ -130,7 +131,7 @@ async def unpublish_event(
 async def start_event(
     event_id: int,
     session: AsyncSession = Depends(get_db),
-    cur_user_id: int = Depends(get_current_user),
+    cur_user_id: int = Depends(require_role("ADMIN")),
 ):
     service = EventService(session)
     try:
@@ -148,7 +149,7 @@ async def start_event(
 async def finish_event(
     event_id: int,
     session: AsyncSession = Depends(get_db),
-    cur_user_id: int = Depends(get_current_user),
+    cur_user_id: int = Depends(require_role("ADMIN")),
 ):
     service = EventService(session)
     try:

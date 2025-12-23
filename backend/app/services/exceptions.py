@@ -9,6 +9,10 @@ class EmailAlreadyRegistered(AuthError):
 class InvalidCredentials(AuthError):
     pass
 
+
+class InvalidGoogleToken(AuthError):
+    pass
+
 class EventError(Exception):
     pass
 

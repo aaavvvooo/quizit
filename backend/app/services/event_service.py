@@ -3,9 +3,9 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.repos import EventRepository
+from app.repos import EventRepository, RoleRepository
 from app.schemas import EventList, EventCreate, EventUpdate
-from app.models import EventStatus
+from app.models import EventStatus, Role
 from app.services.exceptions import EventNotFound, EventInvalidStatus
 
 @dataclass(slots=True)
@@ -16,14 +16,21 @@ class EventService:
     def events(self) -> EventRepository:
         return EventRepository(self.session)
 
+    @property
+    def roles(self) -> RoleRepository:
+        return RoleRepository(self.session)
+
+
     async def create_event(self, event: EventCreate, cur_user_id: int) -> EventList:
         res = await self.events.create_event(**event.dict(), user_id=cur_user_id)
         await self.session.commit()
         await self.session.refresh(res)
         return res
 
-    async def list_events(self) -> list[EventList]:
-        event_list = await self.events.list_events()
+    async def list_events(self, role: Role | None) -> list[EventList]:
+        include_drafts = role == Role.ADMIN
+        print(include_drafts)
+        event_list = await self.events.list_events(include_drafts=include_drafts)
         res = [EventList(**event.__dict__) for event in event_list]
         return res
 
